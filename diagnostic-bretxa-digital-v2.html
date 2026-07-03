@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diagnòstic: la teva bretxa digital sanitària · IA Infermera</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep:#0B1220;
+    --bg-screen:#0E1B2E;
+    --grid-line:#1C2C45;
+    --pulse:#5EEAD4;
+    --pulse-dim:#2C6B63;
+    --amber:#F2A65A;
+    --green:#34D399;
+    --orange:#F0813F;
+    --paper:#F7F5EF;
+    --paper-dim:#EDE9DF;
+    --ink:#111827;
+    --muted:#5B6472;
+    --danger:#E8785A;
+    --radius:16px;
+    --radius-lg:24px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    background:var(--bg-deep);
+    color:var(--paper);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding:32px 16px 64px;
+    line-height:1.5;
+    position:relative;
+    overflow-x:hidden;
+  }
+
+  /* ambient aurora glow */
+  .aurora{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+  .aurora span{position:absolute;border-radius:50%;filter:blur(70px);opacity:0.32;animation:drift 16s ease-in-out infinite alternate;}
+  .aurora span:nth-child(1){width:320px;height:320px;background:var(--pulse);top:-80px;left:-60px;}
+  .aurora span:nth-child(2){width:280px;height:280px;background:var(--amber);bottom:-60px;right:-40px;animation-delay:-6s;}
+  .aurora span:nth-child(3){width:220px;height:220px;background:#7C6CF2;top:40%;right:10%;animation-delay:-11s;opacity:0.18;}
+  @keyframes drift{0%{transform:translate(0,0) scale(1);}100%{transform:translate(30px,-20px) scale(1.15);}}
+
+  .app{width:100%;max-width:560px;position:relative;z-index:1;}
+
+  .brand-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+  .brand-id{display:flex;align-items:center;gap:10px;}
+  .brand-mark{width:34px;height:34px;flex-shrink:0;filter:drop-shadow(0 0 10px rgba(94,234,212,0.35));}
+  .brand-text{display:flex;flex-direction:column;line-height:1.25;}
+  .brand-name{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;letter-spacing:0.16em;color:var(--pulse);}
+  .brand-handle{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);}
+
+  .prefs{display:flex;gap:8px;flex-wrap:wrap;}
+  .toggle-group{display:flex;background:rgba(255,255,255,0.03);border:1px solid var(--grid-line);border-radius:20px;padding:3px;gap:2px;}
+  .toggle-btn{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.03em;background:transparent;border:none;color:#8592A8;padding:6px 11px;border-radius:16px;cursor:pointer;transition:background 0.15s ease,color 0.15s ease;white-space:nowrap;}
+  .toggle-btn.active{background:var(--pulse);color:#06251F;font-weight:600;}
+  .toggle-btn:hover:not(.active){color:var(--pulse);}
+
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--pulse);
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:10px;
+  }
+  .eyebrow::before{
+    content:'';
+    width:7px;height:7px;border-radius:50%;
+    background:var(--pulse);
+    box-shadow:0 0 8px var(--pulse);
+    animation:blink 1.6s infinite;
+  }
+  @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.25;}}
+
+  h1{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:clamp(27px,5.5vw,36px);
+    font-weight:700;
+    line-height:1.14;
+    background:linear-gradient(100deg,#fff 40%,var(--pulse) 100%);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    margin-bottom:14px;
+  }
+  .lede{color:#B8C2D4;font-size:15px;margin-bottom:24px;max-width:46ch;}
+
+  .monitor{
+    background:var(--bg-screen);
+    border:1px solid var(--grid-line);
+    border-radius:var(--radius-lg);
+    overflow:hidden;
+    box-shadow:0 30px 70px -25px rgba(0,0,0,0.65), inset 0 0 0 1px rgba(255,255,255,0.02);
+  }
+  .monitor-bar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:12px 16px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.04), transparent);
+    border-bottom:1px solid var(--grid-line);
+  }
+  .monitor-bar .dots{display:flex;gap:6px;}
+  .monitor-bar .dots span{width:8px;height:8px;border-radius:50%;background:#2C3B57;}
+  .monitor-bar .readout{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--pulse-dim);letter-spacing:0.06em;}
+
+  .trace-wrap{
+    padding:0;
+    border-bottom:1px solid var(--grid-line);
+    background:
+      linear-gradient(var(--grid-line) 1px, transparent 1px) 0 0/100% 20px,
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px) 0 0/28px 100%;
+    background-color:rgba(255,255,255,0.012);
+    position:relative;
+  }
+  #trace{display:block;width:100%;height:100px;}
+  #trace path{
+    fill:none;
+    stroke:var(--pulse);
+    stroke-width:2.4;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+    filter:drop-shadow(0 0 7px rgba(94,234,212,0.55));
+    transition:d 0.6s ease, stroke 0.6s ease;
+  }
+  .trace-caption{
+    position:absolute;bottom:6px;right:12px;
+    font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.1em;
+    color:var(--pulse-dim);text-transform:uppercase;
+  }
+
+  .screen-body{padding:26px 22px 24px;}
+
+  .progress-pills{display:flex;gap:6px;margin-bottom:16px;}
+  .progress-pills span{height:5px;flex:1;border-radius:4px;background:var(--grid-line);transition:background 0.35s ease, box-shadow 0.35s ease;}
+  .progress-pills span.filled{background:var(--pulse);box-shadow:0 0 8px rgba(94,234,212,0.6);}
+  .progress-pills span.active{background:var(--amber);box-shadow:0 0 8px rgba(242,166,90,0.6);}
+
+  .q-progress{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--pulse-dim);letter-spacing:0.08em;margin-bottom:6px;}
+  .q-progress b{color:var(--pulse);}
+
+  .q-text{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:20px;font-weight:600;color:#fff;margin-bottom:18px;line-height:1.35;
+  }
+
+  .opts{display:flex;flex-direction:column;gap:9px;}
+  .opt{
+    display:flex;align-items:center;gap:12px;
+    text-align:left;
+    background:rgba(255,255,255,0.02);
+    border:1px solid var(--grid-line);
+    color:#DCE3EE;
+    padding:13px 15px;
+    border-radius:12px;
+    font-family:'Inter',sans-serif;
+    font-size:14.5px;
+    cursor:pointer;
+    transition:border-color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+  }
+  .opt .idx{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--pulse-dim);
+    border:1px solid var(--grid-line);border-radius:6px;width:22px;height:22px;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    transition:color 0.15s ease, border-color 0.15s ease;
+  }
+  .opt:hover{border-color:var(--pulse-dim);background:rgba(94,234,212,0.05);}
+  .opt:hover .idx{color:var(--pulse);border-color:var(--pulse-dim);}
+  .opt:active{transform:scale(0.99);}
+  .opt.selected{border-color:var(--pulse);background:rgba(94,234,212,0.1);}
+  .opt.selected .idx{background:var(--pulse);color:#06251F;border-color:var(--pulse);}
+
+  .start-btn, .primary-btn{
+    font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:13px;letter-spacing:0.05em;text-transform:uppercase;
+    background:linear-gradient(100deg,var(--pulse),#8FF0DF);
+    color:#06251F;border:none;padding:15px 22px;border-radius:12px;cursor:pointer;width:100%;
+    transition:filter 0.15s ease, transform 0.1s ease;
+  }
+  .start-btn:hover, .primary-btn:hover{filter:brightness(1.08);}
+  .start-btn:active, .primary-btn:active{transform:scale(0.98);}
+
+  .secondary-btn{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.04em;
+    background:transparent;border:1px solid var(--grid-line);color:#B8C2D4;
+    padding:12px 18px;border-radius:12px;cursor:pointer;width:100%;margin-top:10px;
+  }
+  .secondary-btn:hover{border-color:var(--pulse-dim);color:var(--pulse);}
+
+  .intro-stats{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;}
+  .stat-chip{
+    font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--amber);
+    background:rgba(242,166,90,0.08);border:1px solid rgba(242,166,90,0.25);
+    padding:6px 10px;border-radius:20px;
+  }
+
+  /* results */
+  .result-card{
+    background:var(--paper);color:var(--ink);border-radius:var(--radius-lg);margin-top:16px;overflow:hidden;
+    box-shadow:0 30px 70px -25px rgba(0,0,0,0.5);
+  }
+  .result-head{padding:30px 22px 10px;text-align:center;}
+  .result-tag{
+    display:inline-block;
+    font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;
+    color:#fff;background:var(--ink);padding:5px 12px;border-radius:20px;margin-bottom:18px;
+  }
+
+  .ring-wrap{position:relative;width:180px;height:180px;margin:0 auto 16px;}
+  .ring-wrap svg{width:100%;height:100%;transform:rotate(-90deg);}
+  .ring-bg{fill:none;stroke:#E3DECF;stroke-width:11;}
+  .ring-fill{fill:none;stroke:var(--pulse);stroke-width:11;stroke-linecap:round;stroke-dasharray:439.8;stroke-dashoffset:439.8;transition:stroke-dashoffset 1.3s cubic-bezier(.16,1,.3,1), stroke 0.4s ease;}
+  .ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  .ring-score{font-family:'Space Grotesk',sans-serif;font-size:40px;font-weight:700;}
+  .ring-max{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);}
+
+  .result-title{font-family:'Space Grotesk',sans-serif;font-size:27px;font-weight:700;margin-bottom:6px;}
+  .result-sub{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--muted);margin-bottom:6px;}
+
+  .result-desc{padding:16px 22px 18px;font-size:14.5px;color:#3B4250;border-top:1px dashed #D8D2C4;border-bottom:1px dashed #D8D2C4;}
+  .result-steps{padding:18px 22px;}
+  .result-steps h3{font-family:'Space Grotesk',sans-serif;font-size:14px;text-transform:uppercase;letter-spacing:0.04em;color:var(--muted);margin-bottom:12px;}
+  .step{display:flex;gap:12px;padding:10px 0;border-top:1px solid var(--paper-dim);font-size:14px;}
+  .step:first-child{border-top:none;}
+  .step .num{font-family:'IBM Plex Mono',monospace;color:var(--amber);font-weight:600;flex-shrink:0;}
+
+  .community{padding:18px 22px 22px;background:var(--paper-dim);}
+  .community h3{font-family:'Space Grotesk',sans-serif;font-size:14px;text-transform:uppercase;letter-spacing:0.04em;color:var(--muted);margin-bottom:12px;}
+  .bars{display:flex;flex-direction:column;gap:8px;}
+  .bar-row{display:flex;align-items:center;gap:10px;font-size:12.5px;}
+  .bar-label{width:130px;flex-shrink:0;color:var(--ink);font-family:'IBM Plex Mono',monospace;font-size:11px;}
+  .bar-track{flex:1;height:9px;background:#E3DECF;border-radius:6px;overflow:hidden;}
+  .bar-fill{height:100%;border-radius:6px;background:var(--pulse-dim);width:0;transition:width 1s cubic-bezier(.16,1,.3,1);}
+  .bar-fill.me{background:var(--amber);}
+  .bar-pct{width:34px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);}
+  .count-line{margin-top:14px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--muted);}
+  .count-line b{color:var(--ink);}
+
+  /* shareable card */
+  .card-section{padding:22px 22px 6px;}
+  .card-section h3{font-family:'Space Grotesk',sans-serif;font-size:14px;text-transform:uppercase;letter-spacing:0.04em;color:var(--muted);margin-bottom:12px;}
+  .card-preview{
+    background:var(--bg-deep);border-radius:18px;padding:14px;display:flex;justify-content:center;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,0.05);
+  }
+  .card-preview canvas{width:100%;max-width:230px;height:auto;border-radius:14px;display:block;box-shadow:0 14px 30px -12px rgba(0,0,0,0.6);}
+
+  .cta-row{padding:16px 22px 24px;}
+  .footer-note{margin-top:18px;font-size:12px;color:#5B6472;text-align:center;}
+  .footer-note a{color:var(--pulse);text-decoration:none;}
+  .footer-copyright{margin-top:6px;font-size:11px;color:#465064;text-align:center;}
+
+  .hidden{display:none !important;}
+
+  /* confetti */
+  .confetti-layer{position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden;}
+  .confetti-piece{position:absolute;top:-24px;width:8px;height:14px;opacity:0.95;border-radius:2px;animation-name:confettiFall;animation-timing-function:cubic-bezier(.35,.4,.6,1);animation-fill-mode:forwards;}
+  @keyframes confettiFall{
+    0%{transform:translateY(0) translateX(0) rotate(0deg);opacity:1;}
+    100%{transform:translateY(110vh) translateX(var(--drift)) rotate(var(--rot));opacity:0;}
+  }
+
+  @media (max-width:420px){
+    .bar-label{width:100px;font-size:10px;}
+  }
+</style>
+</head>
+<body>
+<div class="aurora"><span></span><span></span><span></span></div>
+
+<div class="app">
+  <div class="brand-row">
+    <div class="brand-id">
+      <div class="brand-mark" id="brandMark"></div>
+      <div class="brand-text">
+        <span class="brand-name">IA INFERMERA</span>
+        <span class="brand-handle">@iainfermera6</span>
+      </div>
+    </div>
+    <div class="prefs">
+      <div class="toggle-group" id="langToggle">
+        <button type="button" class="toggle-btn" data-val="ca">CA</button>
+        <button type="button" class="toggle-btn" data-val="es">ES</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="eyebrow" id="eyebrowText">Diagnòstic digital</div>
+  <h1 id="h1Text">Quina és la teva bretxa digital com a professional de la salut?</h1>
+  <p class="lede" id="ledeText">Un diagnòstic ràpid, sense judicis, per saber on ets i quin és el primer pas concret per avançar amb la IA i les eines digitals a la teva feina.</p>
+
+  <div class="monitor">
+    <div class="monitor-bar">
+      <div class="dots"><span></span><span></span><span></span></div>
+      <div class="readout" id="monitorReadout">STAND-BY</div>
+    </div>
+    <div class="trace-wrap">
+      <svg id="trace" viewBox="0 0 560 100" preserveAspectRatio="none">
+        <path id="tracePath" d="M0,50 L560,50"></path>
+      </svg>
+      <div class="trace-caption" id="traceCaption">ONA ANALÒGICA</div>
+    </div>
+    <div class="screen-body">
+
+      <!-- INTRO -->
+      <div id="screenIntro">
+        <p style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:#B8C2D4;margin-bottom:16px;" id="introNote">
+          6 preguntes · 2 minuts · resultat personalitzat amb passos concrets
+        </p>
+        <button class="start-btn" id="btnStart">Comença el diagnòstic →</button>
+        <div class="intro-stats">
+          <span class="stat-chip" id="chipTotal">📊 —</span>
+          <span class="stat-chip" id="chipAnon">🔒 Anònim</span>
+        </div>
+      </div>
+
+      <!-- QUIZ -->
+      <div id="screenQuiz" class="hidden">
+        <div class="progress-pills" id="progressPills"></div>
+        <div class="q-progress" id="qProgress">PREGUNTA <b id="qNum">1</b> / 6</div>
+        <div class="q-text" id="qText"></div>
+        <div class="opts" id="qOpts"></div>
+      </div>
+
+      <!-- RESULT (inside monitor: quick readout before card) -->
+      <div id="screenResultIntro" class="hidden">
+        <p style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--pulse);" id="resultCompleteMsg">
+          ✓ Diagnòstic completat. Desplega't avall per veure el teu perfil.
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- RESULT CARD -->
+  <div class="result-card hidden" id="resultCard">
+    <div class="result-head">
+      <div class="result-tag" id="resTag">PERFIL DIGITAL</div>
+      <div class="ring-wrap">
+        <svg viewBox="0 0 160 160">
+          <circle class="ring-bg" cx="80" cy="80" r="70"></circle>
+          <circle class="ring-fill" id="ringFill" cx="80" cy="80" r="70"></circle>
+        </svg>
+        <div class="ring-center">
+          <span class="ring-score" id="ringScoreNum">0</span>
+          <span class="ring-max" id="ringMax">de 18</span>
+        </div>
+      </div>
+      <div class="result-title" id="resTitle">—</div>
+      <div class="result-sub" id="resSub">EL TEU PERFIL DIGITAL SANITÀRIA</div>
+    </div>
+    <div class="result-desc" id="resDesc"></div>
+    <div class="result-steps">
+      <h3 id="stepsHeading">Els teus 3 passos concrets</h3>
+      <div id="resSteps"></div>
+    </div>
+    <div class="community">
+      <h3 id="communityHeading">Com et situes respecte a la comunitat</h3>
+      <div class="bars" id="commBars"></div>
+      <div class="count-line" id="commCount"></div>
+    </div>
+    <div class="card-section">
+      <h3 id="cardHeading">La teva targeta per compartir</h3>
+      <div class="card-preview"><canvas id="shareCanvas" width="1080" height="1350"></canvas></div>
+    </div>
+    <div class="cta-row">
+      <button class="primary-btn" id="btnDownload">⬇ Descarrega la targeta</button>
+      <button class="secondary-btn" id="btnCopy">Copiar resultat en text</button>
+      <button class="secondary-btn" id="btnRestart">Tornar a fer el test</button>
+    </div>
+  </div>
+
+  <p class="footer-note" id="footerNote">Un diagnòstic de <strong>IA Infermera</strong> (@iainfermera6)</p>
+  <p class="footer-copyright" id="footerCopyright">© 2026 IA Infermera. Tots els drets reservats.</p>
+</div>
+
+<script>
+(function(){
+  const brandMarkSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 34 34"><rect x="1" y="1" width="32" height="32" rx="9" stroke="url(#g1)" stroke-width="1.4" fill="rgba(94,234,212,0.08)"/><path d="M5 18 H11 L13.5 9 L17.5 27 L20.5 18 H29" stroke="url(#g1)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><defs><linearGradient id="g1" x1="0" y1="0" x2="34" y2="34"><stop stop-color="#5EEAD4"/><stop offset="1" stop-color="#F2A65A"/></linearGradient></defs></svg>`;
+  document.getElementById('brandMark').innerHTML = brandMarkSVG;
+
+  const CONTENT = {
+    ca: {
+      ui: {
+        eyebrow: "Diagnòstic digital",
+        h1: "Quina és la teva bretxa digital com a professional de la salut?",
+        lede: "Un diagnòstic ràpid, sense judicis, per saber on ets i quin és el primer pas concret per avançar amb la IA i les eines digitals a la teva feina.",
+        introNote: "6 preguntes · 2 minuts · resultat personalitzat amb passos concrets",
+        startBtn: "Comença el diagnòstic →",
+        chipAnon: "🔒 Anònim",
+        chipTotal: n => `📊 ${n} professionals ja l'han fet`,
+        chipFirst: "📊 Sigues dels primers",
+        qProgressLabel: "PREGUNTA",
+        monitorStandby: "STAND-BY",
+        monitorRegistering: "REGISTRANT",
+        monitorCaptured: "SENYAL CAPTADA ✓",
+        monitorDone: "DIAGNÒSTIC OK",
+        traceAnalog: "ONA ANALÒGICA",
+        traceTransition: "TRANSICIÓ DIGITAL",
+        traceDigital: "SENYAL DIGITAL",
+        resultCompleteMsg: "✓ Diagnòstic completat. Desplega't avall per veure el teu perfil.",
+        resTagPrefix: "PERFIL",
+        resSub: "EL TEU PERFIL DIGITAL SANITÀRIA",
+        ringMax: "de 18",
+        stepsHeading: "Els teus 3 passos concrets",
+        communityHeading: "Com et situes respecte a la comunitat",
+        communityCountSuffix: "professionals sanitaris han completat aquest diagnòstic.",
+        cardHeading: "La teva targeta per compartir",
+        btnDownload: "⬇ Descarrega la targeta",
+        btnCopy: "Copiar resultat en text",
+        btnCopied: "✓ Copiat!",
+        btnRestart: "Tornar a fer el test",
+        footerNoteHTML: 'Un diagnòstic de <strong>IA Infermera</strong> (@iainfermera6)',
+        footerCopyright: "© 2026 IA Infermera. Tots els drets reservats.",
+        shareTemplate: (title, score) => `🩺 EL MEU DIAGNÒSTIC DIGITAL\n${title} (${score}/18)\n\nFet amb el test de @iainfermera6`,
+        card: {
+          brand: "I A   I N F E R M E R A",
+          eyebrow: "EL MEU DIAGNÒSTIC DIGITAL",
+          ofMax: "de 18",
+          copyright: "© 2026 IA INFERMERA · TOTS ELS DRETS RESERVATS",
+          footer: "FES EL TEU DIAGNÒSTIC · @IAINFERMERA6"
+        },
+        communityLabels: {
+          nativa: "🟢 Nativa digital",
+          transicio: "🟡 En transició",
+          moderada: "🟠 Bretxa moderada",
+          amplia: "🔴 Bretxa àmplia"
+        },
+        youSuffix: " (tu)"
+      },
+      questions: [
+        {
+          text: "Amb quina freqüència fas servir dispositius digitals (ordinador, tauleta, mòbil) en la teva feina diària?",
+          opts: [
+            {t:"Constantment, són la meva eina principal", v:3},
+            {t:"Sovint, però amb suport en paper també", v:2},
+            {t:"De tant en tant, quan no tinc més remei", v:1},
+            {t:"Gairebé mai, els evito si puc", v:0}
+          ]
+        },
+        {
+          text: "Has rebut formació digital específica en els darrers 2 anys (ICS, COIGI, etc.)?",
+          opts: [
+            {t:"Sí, diverses formacions", v:3},
+            {t:"Sí, una formació puntual", v:2},
+            {t:"No, però m'agradaria rebre'n", v:1},
+            {t:"No, i tampoc l'he buscat", v:0}
+          ]
+        },
+        {
+          text: "Has fet servir alguna eina d'IA (ChatGPT, Copilot, NotebookLM...) per a tasques professionals?",
+          opts: [
+            {t:"Sí, sovint, en el dia a dia", v:3},
+            {t:"Alguna vegada, per curiositat", v:2},
+            {t:"N'he sentit parlar, no ho he provat", v:1},
+            {t:"No sé ben bé què és", v:0}
+          ]
+        },
+        {
+          text: "Com et sents davant un error tècnic o un sistema nou (Argos, eCAP, BO...)?",
+          opts: [
+            {t:"Ho soluciono sol/a sense gaire problema", v:3},
+            {t:"Ho intento i demano ajuda si cal", v:2},
+            {t:"M'espero que algú m'ho resolgui", v:1},
+            {t:"M'estressa molt i ho evito", v:0}
+          ]
+        },
+        {
+          text: "Tens algú de referència a qui preguntar dubtes digitals quan et sorgeixen?",
+          opts: [
+            {t:"Sí, tinc un suport clar", v:3},
+            {t:"Tinc algú, però no sempre disponible", v:2},
+            {t:"No en tinc, ho busco per internet", v:1},
+            {t:"No en tinc i no sé on buscar", v:0}
+          ]
+        },
+        {
+          text: "Quant de temps a la setmana dediques a formar-te en eines digitals o IA?",
+          opts: [
+            {t:"Més d'1 hora", v:3},
+            {t:"Entre 15 i 60 minuts", v:2},
+            {t:"Molt poc, esporàdicament", v:1},
+            {t:"Gens", v:0}
+          ]
+        }
+      ],
+      profiles: [
+        {
+          id:"nativa", min:15, max:18, color:"#34D399", emoji:"🟢",
+          title:"Nativa digital sanitària",
+          desc:"Ja domines les eines del dia a dia i comences a explorar la IA amb criteri propi. El teu repte ja no és aprendre a fer servir la tecnologia, sinó fer-la servir amb rigor, i ajudar l'equip a fer el mateix pas.",
+          steps:[
+            "Formalitza el que ja saps: comparteix un cas pràctic amb el teu equip (5 minuts en una reunió n'hi ha prou).",
+            "Explora eines de segon nivell: NotebookLM per sintetitzar guies clíniques, o Copilot per a actes i informes.",
+            "Converteix-te en referent digital informal del teu servei: algú sempre acaba fent aquest paper, que sigui amb bases sòlides."
+          ]
+        },
+        {
+          id:"transicio", min:10, max:14, color:"#F2A65A", emoji:"🟡",
+          title:"En transició digital",
+          desc:"Ja has fet el pas d'entrada: fas servir eines digitals i has provat la IA alguna vegada. Ara toca consolidar hàbits perquè no depengui de la motivació d'un dia concret.",
+          steps:[
+            "Tria UNA eina d'IA (per exemple ChatGPT o NotebookLM) i fes-la servir cada setmana per a una tasca petita i repetitiva.",
+            "Bloqueja 20 minuts fixos a l'agenda per formació digital — millor poc i constant que molt i puntual.",
+            "Busca't un company/a amb qui compartir dubtes; aprendre en parella redueix molt la frustració inicial."
+          ]
+        },
+        {
+          id:"moderada", min:5, max:9, color:"#F0813F", emoji:"🟠",
+          title:"Bretxa moderada",
+          desc:"No et falta capacitat, et falta acompanyament i temps protegit. És el perfil més habitual en infermeria d'atenció primària, i el que més es beneficia d'una formació guiada pas a pas.",
+          steps:[
+            "Comença per una formació curta i pràctica, no per un curs llarg — el primer objectiu és guanyar confiança, no acumular teoria.",
+            "Identifica una sola tasca repetitiva teva (redactar una nota, resumir un document) i demana que t'ensenyin a fer-la amb IA.",
+            "No ho facis sol/a: un assessor o formador de referència t'estalvia setmanes de prova i error."
+          ]
+        },
+        {
+          id:"amplia", min:0, max:4, color:"#E8785A", emoji:"🔴",
+          title:"Bretxa digital àmplia",
+          desc:"Partir de zero no és un fracàs, és un punt de partida molt habitual i totalment recuperable. El més important ara és no fer-ho sol/a i triar un primer pas petit, no els deu passos alhora.",
+          steps:[
+            "Comença per l'ús bàsic dels sistemes que ja fas servir cada dia (eCAP, Argos) abans de pensar en IA.",
+            "Demana una sessió individual o en petit grup, no un manual per llegir a casa — la pràctica acompanyada és clau.",
+            "Marca't un únic objectiu per al proper mes (per exemple: 'sé fer una cerca guiada amb IA'), i celebra'l quan l'assoleixis."
+          ]
+        }
+      ]
+    },
+    es: {
+      ui: {
+        eyebrow: "Diagnóstico digital",
+        h1: "¿Cuál es tu brecha digital como profesional de la salud?",
+        lede: "Un diagnóstico rápido, sin juicios, para saber dónde estás y cuál es el primer paso concreto para avanzar con la IA y las herramientas digitales en tu trabajo.",
+        introNote: "6 preguntas · 2 minutos · resultado personalizado con pasos concretos",
+        startBtn: "Empieza el diagnóstico →",
+        chipAnon: "🔒 Anónimo",
+        chipTotal: n => `📊 ${n} profesionales ya lo han hecho`,
+        chipFirst: "📊 Sé de los primeros",
+        qProgressLabel: "PREGUNTA",
+        monitorStandby: "STAND-BY",
+        monitorRegistering: "REGISTRANDO",
+        monitorCaptured: "SEÑAL CAPTADA ✓",
+        monitorDone: "DIAGNÓSTICO OK",
+        traceAnalog: "ONDA ANALÓGICA",
+        traceTransition: "TRANSICIÓN DIGITAL",
+        traceDigital: "SEÑAL DIGITAL",
+        resultCompleteMsg: "✓ Diagnóstico completado. Desplázate abajo para ver tu perfil.",
+        resTagPrefix: "PERFIL",
+        resSub: "TU PERFIL DIGITAL SANITARIA",
+        ringMax: "de 18",
+        stepsHeading: "Tus 3 pasos concretos",
+        communityHeading: "Cómo te sitúas respecto a la comunidad",
+        communityCountSuffix: "profesionales sanitarios han completado este diagnóstico.",
+        cardHeading: "Tu tarjeta para compartir",
+        btnDownload: "⬇ Descarga la tarjeta",
+        btnCopy: "Copiar resultado en texto",
+        btnCopied: "✓ ¡Copiado!",
+        btnRestart: "Volver a hacer el test",
+        footerNoteHTML: 'Un diagnóstico de <strong>IA Infermera</strong> (@iainfermera6)',
+        footerCopyright: "© 2026 IA Infermera. Todos los derechos reservados.",
+        shareTemplate: (title, score) => `🩺 MI DIAGNÓSTICO DIGITAL\n${title} (${score}/18)\n\nHecho con el test de @iainfermera6`,
+        card: {
+          brand: "I A   I N F E R M E R A",
+          eyebrow: "MI DIAGNÓSTICO DIGITAL",
+          ofMax: "de 18",
+          copyright: "© 2026 IA INFERMERA · TODOS LOS DERECHOS RESERVADOS",
+          footer: "HAZ TU DIAGNÓSTICO · @IAINFERMERA6"
+        },
+        communityLabels: {
+          nativa: "🟢 Nativa digital",
+          transicio: "🟡 En transición",
+          moderada: "🟠 Brecha moderada",
+          amplia: "🔴 Brecha amplia"
+        },
+        youSuffix: " (tú)"
+      },
+      questions: [
+        {
+          text: "¿Con qué frecuencia usas dispositivos digitales (ordenador, tablet, móvil) en tu trabajo diario?",
+          opts: [
+            {t:"Constantemente, son mi herramienta principal", v:3},
+            {t:"A menudo, pero también con apoyo en papel", v:2},
+            {t:"De vez en cuando, cuando no tengo más remedio", v:1},
+            {t:"Casi nunca, los evito si puedo", v:0}
+          ]
+        },
+        {
+          text: "¿Has recibido formación digital específica en los últimos 2 años (ICS, COIGI, etc.)?",
+          opts: [
+            {t:"Sí, varias formaciones", v:3},
+            {t:"Sí, una formación puntual", v:2},
+            {t:"No, pero me gustaría recibir alguna", v:1},
+            {t:"No, y tampoco la he buscado", v:0}
+          ]
+        },
+        {
+          text: "¿Has usado alguna herramienta de IA (ChatGPT, Copilot, NotebookLM...) para tareas profesionales?",
+          opts: [
+            {t:"Sí, a menudo, en el día a día", v:3},
+            {t:"Alguna vez, por curiosidad", v:2},
+            {t:"He oído hablar de ello, pero no lo he probado", v:1},
+            {t:"No sé muy bien qué es", v:0}
+          ]
+        },
+        {
+          text: "¿Cómo te sientes ante un error técnico o un sistema nuevo (Argos, eCAP, BO...)?",
+          opts: [
+            {t:"Lo soluciono por mi cuenta sin mucho problema", v:3},
+            {t:"Lo intento y pido ayuda si hace falta", v:2},
+            {t:"Espero a que alguien me lo resuelva", v:1},
+            {t:"Me estresa mucho y lo evito", v:0}
+          ]
+        },
+        {
+          text: "¿Tienes a alguien de referencia a quien preguntar dudas digitales cuando te surgen?",
+          opts: [
+            {t:"Sí, tengo un apoyo claro", v:3},
+            {t:"Tengo a alguien, pero no siempre disponible", v:2},
+            {t:"No tengo, lo busco por internet", v:1},
+            {t:"No tengo y no sé dónde buscar", v:0}
+          ]
+        },
+        {
+          text: "¿Cuánto tiempo a la semana dedicas a formarte en herramientas digitales o IA?",
+          opts: [
+            {t:"Más de 1 hora", v:3},
+            {t:"Entre 15 y 60 minutos", v:2},
+            {t:"Muy poco, esporádicamente", v:1},
+            {t:"Nada", v:0}
+          ]
+        }
+      ],
+      profiles: [
+        {
+          id:"nativa", min:15, max:18, color:"#34D399", emoji:"🟢",
+          title:"Nativa digital sanitaria",
+          desc:"Ya dominas las herramientas del día a día y empiezas a explorar la IA con criterio propio. Tu reto ya no es aprender a usar la tecnología, sino usarla con rigor, y ayudar al equipo a dar el mismo paso.",
+          steps:[
+            "Formaliza lo que ya sabes: comparte un caso práctico con tu equipo (con 5 minutos en una reunión es suficiente).",
+            "Explora herramientas de segundo nivel: NotebookLM para sintetizar guías clínicas, o Copilot para actas e informes.",
+            "Conviértete en referente digital informal de tu servicio: alguien siempre acaba haciendo ese papel, que sea con bases sólidas."
+          ]
+        },
+        {
+          id:"transicio", min:10, max:14, color:"#F2A65A", emoji:"🟡",
+          title:"En transición digital",
+          desc:"Ya has dado el paso de entrada: usas herramientas digitales y has probado la IA alguna vez. Ahora toca consolidar hábitos para que no dependa de la motivación de un día concreto.",
+          steps:[
+            "Elige UNA herramienta de IA (por ejemplo ChatGPT o NotebookLM) y úsala cada semana para una tarea pequeña y repetitiva.",
+            "Bloquea 20 minutos fijos en la agenda para formación digital — mejor poco y constante que mucho y puntual.",
+            "Búscate a alguien con quien compartir dudas; aprender en pareja reduce mucho la frustración inicial."
+          ]
+        },
+        {
+          id:"moderada", min:5, max:9, color:"#F0813F", emoji:"🟠",
+          title:"Brecha moderada",
+          desc:"No te falta capacidad, te falta acompañamiento y tiempo protegido. Es el perfil más habitual en enfermería de atención primaria, y el que más se beneficia de una formación guiada paso a paso.",
+          steps:[
+            "Empieza por una formación corta y práctica, no por un curso largo — el primer objetivo es ganar confianza, no acumular teoría.",
+            "Identifica una sola tarea repetitiva tuya (redactar una nota, resumir un documento) y pide que te enseñen a hacerla con IA.",
+            "No lo hagas sola/o: un asesor o formador de referencia te ahorra semanas de prueba y error."
+          ]
+        },
+        {
+          id:"amplia", min:0, max:4, color:"#E8785A", emoji:"🔴",
+          title:"Brecha digital amplia",
+          desc:"Partir de cero no es un fracaso, es un punto de partida muy habitual y totalmente recuperable. Lo más importante ahora es no hacerlo sola/o y elegir un primer paso pequeño, no los diez pasos a la vez.",
+          steps:[
+            "Empieza por el uso básico de los sistemas que ya usas cada día (eCAP, Argos) antes de pensar en IA.",
+            "Pide una sesión individual o en grupo pequeño, no un manual para leer en casa — la práctica acompañada es clave.",
+            "Márcate un único objetivo para el próximo mes (por ejemplo: 'sé hacer una búsqueda guiada con IA'), y celébralo cuando lo consigas."
+          ]
+        }
+      ]
+    }
+  };
+
+  let lang = 'ca';
+  let current = 0;
+  let score = 0;
+  const answers = [];
+  let currentProfileId = null;
+  let resultShown = false;
+  let lastKnownTotal = null;
+  let answerLocked = false;
+
+  const el = id => document.getElementById(id);
+  const screenIntro = el('screenIntro');
+  const screenQuiz = el('screenQuiz');
+  const screenResultIntro = el('screenResultIntro');
+  const resultCard = el('resultCard');
+  const tracePath = el('tracePath');
+  const monitorReadout = el('monitorReadout');
+  const traceCaption = el('traceCaption');
+  const progressPills = el('progressPills');
+
+  function C(){ return CONTENT[lang]; }
+  function U(){ return CONTENT[lang].ui; }
+
+  CONTENT.ca.questions.forEach(()=>{
+    const s = document.createElement('span');
+    progressPills.appendChild(s);
+  });
+
+  function lerpColor(a, b, t){
+    const ah = parseInt(a.slice(1),16), bh = parseInt(b.slice(1),16);
+    const ar=(ah>>16)&255, ag=(ah>>8)&255, ab=ah&255;
+    const br=(bh>>16)&255, bg=(bh>>8)&255, bb=bh&255;
+    const r=Math.round(ar+(br-ar)*t), g=Math.round(ag+(bg-ag)*t), bl=Math.round(ab+(bb-ab)*t);
+    return `rgb(${r},${g},${bl})`;
+  }
+
+  function traceForProgress(p){
+    const w = 560, mid = 50;
+    let d = `M0,${mid} `;
+    const segments = 8;
+    const segW = w/segments;
+    for(let i=0;i<segments;i++){
+      const x0 = i*segW;
+      const digitalness = p;
+      const amp = 14 + p*20;
+      const cx = x0+segW/2;
+      if(i % 2 === 0){
+        d += `Q${x0+segW*0.25*(1-digitalness*0.6)},${mid-amp} ${cx},${mid-amp*(0.3+0.7*digitalness)} `;
+        d += `Q${x0+segW*0.75},${mid-amp*(digitalness)} ${x0+segW},${mid} `;
+      } else {
+        d += `Q${x0+segW*0.25},${mid+amp*(0.3+0.7*digitalness)} ${cx},${mid+amp*(0.3+0.7*digitalness)} `;
+        d += `Q${x0+segW*0.75},${mid} ${x0+segW},${mid} `;
+      }
+    }
+    return d;
+  }
+  tracePath.setAttribute('d', traceForProgress(0));
+
+  function updateProgressPills(){
+    Array.from(progressPills.children).forEach((s,i)=>{
+      s.classList.toggle('filled', i < current);
+      s.classList.toggle('active', i === current);
+    });
+  }
+
+  function renderStaticText(){
+    const u = U();
+    el('eyebrowText').textContent = u.eyebrow;
+    el('h1Text').textContent = u.h1;
+    el('ledeText').textContent = u.lede;
+    el('introNote').textContent = u.introNote;
+    el('btnStart').textContent = u.startBtn;
+    el('chipAnon').textContent = u.chipAnon;
+    el('resultCompleteMsg').textContent = u.resultCompleteMsg;
+    el('ringMax').textContent = u.ringMax;
+    el('stepsHeading').textContent = u.stepsHeading;
+    el('communityHeading').textContent = u.communityHeading;
+    el('cardHeading').textContent = u.cardHeading;
+    el('btnDownload').textContent = u.btnDownload;
+    el('btnCopy').textContent = u.btnCopy;
+    el('btnRestart').textContent = u.btnRestart;
+    el('footerNote').innerHTML = u.footerNoteHTML;
+    el('footerCopyright').textContent = u.footerCopyright;
+    if(!screenQuiz.classList.contains('hidden')){
+      el('monitorReadout').textContent = `Q${current+1}/6 · ${u.monitorRegistering}`;
+    } else if(screenIntro.classList.contains('hidden') && screenResultIntro.classList.contains('hidden')===false){
+      monitorReadout.textContent = u.monitorDone;
+    } else if(screenIntro.classList.contains('hidden')===false){
+      monitorReadout.textContent = u.monitorStandby;
+    }
+    updateChipTotal();
+    updateLangActive();
+    updateTraceCaption();
+  }
+
+  function currentProgressFraction(){
+    if(!screenIntro.classList.contains('hidden')) return 0;
+    if(resultShown) return 1;
+    return current/6;
+  }
+
+  function updateTraceCaption(){
+    const u = U();
+    const p = currentProgressFraction();
+    traceCaption.textContent = p < 0.34 ? u.traceAnalog : p < 0.67 ? u.traceTransition : u.traceDigital;
+  }
+
+  function updateLangActive(){
+    const langBtns = document.querySelectorAll('#langToggle .toggle-btn');
+    langBtns.forEach(b=> b.classList.toggle('active', b.dataset.val === lang));
+  }
+
+  function updateChipTotal(){
+    const u = U();
+    if(lastKnownTotal === null) return;
+    el('chipTotal').textContent = lastKnownTotal > 0 ? u.chipTotal(lastKnownTotal) : u.chipFirst;
+  }
+
+  function renderQuestion(){
+    answerLocked = false;
+    const u = U();
+    const q = C().questions[current];
+    el('qProgress').innerHTML = `${u.qProgressLabel} <b id="qNum">${current+1}</b> / 6`;
+    el('qText').textContent = q.text;
+    const opts = el('qOpts');
+    opts.innerHTML = '';
+    q.opts.forEach((o,i)=>{
+      const b = document.createElement('button');
+      b.className = 'opt';
+      b.innerHTML = `<span class="idx">${i+1}</span><span>${o.t}</span>`;
+      b.onclick = () => selectAnswer(o.v, b);
+      opts.appendChild(b);
+    });
+    monitorReadout.textContent = `Q${current+1}/6 · ${u.monitorRegistering}`;
+    const p = current/6;
+    tracePath.setAttribute('d', traceForProgress(p));
+    tracePath.style.stroke = lerpColor('#5EEAD4','#F2A65A', p);
+    traceCaption.textContent = p < 0.34 ? u.traceAnalog : p < 0.67 ? u.traceTransition : u.traceDigital;
+    updateProgressPills();
+  }
+
+  function selectAnswer(v, btn){
+    if(answerLocked) return;
+    answerLocked = true;
+    Array.from(el('qOpts').children).forEach(b=>b.classList.remove('selected'));
+    btn.classList.add('selected');
+    monitorReadout.textContent = U().monitorCaptured;
+    answers.push(v);
+    score += v;
+    current++;
+    setTimeout(()=>{
+      if(current < C().questions.length){
+        renderQuestion();
+      } else {
+        finishQuiz();
+      }
+    }, 220);
+  }
+
+  el('btnStart').onclick = () => {
+    screenIntro.classList.add('hidden');
+    screenQuiz.classList.remove('hidden');
+    renderQuestion();
+  };
+
+  async function finishQuiz(){
+    const u = U();
+    el('qOpts').innerHTML = '';
+    screenQuiz.classList.add('hidden');
+    screenResultIntro.classList.remove('hidden');
+    monitorReadout.textContent = u.monitorDone;
+    tracePath.setAttribute('d', traceForProgress(1));
+    tracePath.style.stroke = '#F2A65A';
+    traceCaption.textContent = u.traceDigital;
+    updateProgressPills();
+    await showResult();
+  }
+
+  function getProfile(s, lst){
+    return lst.find(p => s>=p.min && s<=p.max) || lst[lst.length-1];
+  }
+
+  function animateRing(profile){
+    const circumference = 2 * Math.PI * 70;
+    const ringFill = el('ringFill');
+    ringFill.style.stroke = profile.color;
+    requestAnimationFrame(()=>{
+      ringFill.style.strokeDashoffset = circumference * (1 - score/18);
+    });
+    const numEl = el('ringScoreNum');
+    const duration = 1000;
+    const start = performance.now();
+    function step(now){
+      const t = Math.min(1, (now-start)/duration);
+      numEl.textContent = Math.round(t*score);
+      if(t<1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  function launchConfetti(colors){
+    const container = document.createElement('div');
+    container.className = 'confetti-layer';
+    document.body.appendChild(container);
+    for(let i=0;i<46;i++){
+      const p = document.createElement('span');
+      p.className = 'confetti-piece';
+      p.style.left = Math.random()*100+'%';
+      p.style.background = colors[i%colors.length];
+      p.style.animationDelay = (Math.random()*0.4)+'s';
+      p.style.animationDuration = (2.2+Math.random()*1.4)+'s';
+      p.style.setProperty('--rot', (Math.random()*360)+'deg');
+      p.style.setProperty('--drift', (Math.random()*160-80)+'px');
+      container.appendChild(p);
+    }
+    setTimeout(()=>container.remove(), 4200);
+  }
+
+  function wrapText(ctx, text, x, y, maxWidth, lineHeight){
+    const words = text.split(' ');
+    let line = '', lines = [];
+    for(let n=0;n<words.length;n++){
+      const testLine = line + words[n] + ' ';
+      if(ctx.measureText(testLine).width > maxWidth && n>0){
+        lines.push(line.trim());
+        line = words[n] + ' ';
+      } else {
+        line = testLine;
+      }
+    }
+    lines.push(line.trim());
+    lines.forEach((l,i)=> ctx.fillText(l, x, y+i*lineHeight));
+    return y + lines.length*lineHeight;
+  }
+
+  function roundRect(ctx, x, y, w, h, r){
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.arcTo(x+w, y, x+w, y+h, r);
+    ctx.arcTo(x+w, y+h, x, y+h, r);
+    ctx.arcTo(x, y+h, x, y, r);
+    ctx.arcTo(x, y, x+w, y, r);
+    ctx.closePath();
+  }
+
+  async function drawShareCard(profile, title){
+    const u = U();
+    const canvas = el('shareCanvas');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+
+    try{ await document.fonts.ready; }catch(e){}
+
+    const bgGrad = ctx.createLinearGradient(0,0,0,H);
+    bgGrad.addColorStop(0,'#0B1220');
+    bgGrad.addColorStop(1,'#0E1B2E');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0,0,W,H);
+
+    const glow1 = ctx.createRadialGradient(140,140,0,140,140,420);
+    glow1.addColorStop(0,'rgba(94,234,212,0.16)');
+    glow1.addColorStop(1,'rgba(94,234,212,0)');
+    ctx.fillStyle = glow1;
+    ctx.fillRect(0,0,W,H);
+    const glow2 = ctx.createRadialGradient(W-140,H-200,0,W-140,H-200,460);
+    glow2.addColorStop(0,'rgba(242,166,90,0.14)');
+    glow2.addColorStop(1,'rgba(242,166,90,0)');
+    ctx.fillStyle = glow2;
+    ctx.fillRect(0,0,W,H);
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.035)';
+    ctx.lineWidth = 1;
+    for(let gx=0; gx<W; gx+=54){ ctx.beginPath(); ctx.moveTo(gx,0); ctx.lineTo(gx,H); ctx.stroke(); }
+    for(let gy=0; gy<H; gy+=54){ ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(W,gy); ctx.stroke(); }
+
+    try{
+      const markImg = new Image();
+      markImg.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(brandMarkSVG);
+      await markImg.decode();
+      ctx.drawImage(markImg, 90, 84, 64, 64);
+    }catch(e){ /* skip mark if it fails to decode */ }
+
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = '#5EEAD4';
+    ctx.font = '700 30px "IBM Plex Mono", monospace';
+    ctx.fillText(u.card.brand, 172, 118);
+    ctx.fillStyle = '#8592A8';
+    ctx.font = '400 24px "IBM Plex Mono", monospace';
+    ctx.fillText('@iainfermera6', 172, 150);
+
+    ctx.fillStyle = '#5EEAD4';
+    ctx.font = '600 26px "IBM Plex Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(u.card.eyebrow, W/2, 250);
+
+    const ringCX = W/2, ringCY = 470, ringR = 190;
+    ctx.beginPath();
+    ctx.arc(ringCX, ringCY, ringR, 0, Math.PI*2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 26;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(ringCX, ringCY, ringR, -Math.PI/2, -Math.PI/2 + (Math.PI*2)*(score/18));
+    ctx.strokeStyle = profile.color;
+    ctx.lineWidth = 26;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '800 130px "Space Grotesk", sans-serif';
+    ctx.fillText(String(score), ringCX, ringCY+42);
+    ctx.fillStyle = '#8592A8';
+    ctx.font = '500 32px "IBM Plex Mono", monospace';
+    ctx.fillText(u.card.ofMax, ringCX, ringCY+92);
+
+    const pillLabel = `${u.resTagPrefix}  ${profile.emoji}`;
+    ctx.font = '700 30px "IBM Plex Mono", monospace';
+    const pillW = ctx.measureText(pillLabel).width + 60;
+    ctx.fillStyle = profile.color;
+    const pillY = ringCY + ringR + 60;
+    roundRect(ctx, ringCX - pillW/2, pillY - 40, pillW, 58, 29);
+    ctx.fill();
+    ctx.fillStyle = '#0B1220';
+    ctx.fillText(pillLabel, ringCX, pillY);
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '700 58px "Space Grotesk", sans-serif';
+    let yCursor = pillY + 90;
+    yCursor = wrapText(ctx, title, ringCX, yCursor, W-160, 66);
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.setLineDash([6,10]);
+    ctx.beginPath();
+    ctx.moveTo(120, yCursor+40);
+    ctx.lineTo(W-120, yCursor+40);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = '#6B7690';
+    ctx.font = '500 24px "IBM Plex Mono", monospace';
+    ctx.fillText(u.card.copyright, ringCX, yCursor+95);
+
+    ctx.font = '600 28px "IBM Plex Mono", monospace';
+    const footer = u.card.footer;
+    const footW = ctx.measureText(footer).width + 56;
+    ctx.fillStyle = 'rgba(94,234,212,0.12)';
+    roundRect(ctx, ringCX-footW/2, H-140, footW, 56, 28);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(94,234,212,0.4)';
+    ctx.lineWidth = 2;
+    roundRect(ctx, ringCX-footW/2, H-140, footW, 56, 28);
+    ctx.stroke();
+    ctx.fillStyle = '#5EEAD4';
+    ctx.fillText(footer, ringCX, H-102);
+
+    ctx.textAlign = 'left';
+  }
+
+  function renderCommunityBars(counts, myProfileId){
+    const u = U();
+    const total = Object.values(counts).reduce((a,b)=>a+b,0) || 1;
+    const order = ['nativa','transicio','moderada','amplia'];
+    const bars = el('commBars');
+    bars.innerHTML = '';
+    order.forEach(id=>{
+      const label = u.communityLabels[id];
+      const c = counts[id]||0;
+      const pct = Math.round((c/total)*100);
+      const isMe = id === myProfileId;
+      const row = document.createElement('div');
+      row.className = 'bar-row';
+      row.innerHTML = `
+        <span class="bar-label">${label}${isMe?u.youSuffix:''}</span>
+        <span class="bar-track"><span class="bar-fill${isMe?' me':''}" style="width:0"></span></span>
+        <span class="bar-pct">${pct}%</span>
+      `;
+      bars.appendChild(row);
+      requestAnimationFrame(()=>{
+        row.querySelector('.bar-fill').style.width = pct+'%';
+      });
+    });
+    el('commCount').innerHTML = `<b>${total}</b> ${u.communityCountSuffix}`;
+  }
+
+  function updateResultDisplay(){
+    if(!currentProfileId) return;
+    const u = U();
+    const profile = C().profiles.find(p=>p.id===currentProfileId);
+    const title = profile.title;
+    el('resTag').textContent = `${u.resTagPrefix} ${profile.emoji}`;
+    el('resTitle').textContent = title;
+    el('resSub').textContent = u.resSub;
+    el('resDesc').textContent = profile.desc;
+
+    const stepsEl = el('resSteps');
+    stepsEl.innerHTML = '';
+    profile.steps.forEach((s,i)=>{
+      const row = document.createElement('div');
+      row.className = 'step';
+      row.innerHTML = `<span class="num">${i+1}</span><span>${s}</span>`;
+      stepsEl.appendChild(row);
+    });
+
+    const shareText = u.shareTemplate(title, score);
+    el('btnCopy').onclick = () => {
+      navigator.clipboard.writeText(shareText).then(()=>{
+        el('btnCopy').textContent = u.btnCopied;
+        setTimeout(()=>{ el('btnCopy').textContent = u.btnCopy; }, 2500);
+      });
+    };
+
+    drawShareCard(profile, title);
+
+    if(lastKnownCounts){ renderCommunityBars(lastKnownCounts, currentProfileId); }
+  }
+
+  let lastKnownCounts = null;
+
+  async function showResult(){
+    const profile = getProfile(score, C().profiles);
+    currentProfileId = profile.id;
+    resultShown = true;
+
+    el('btnDownload').onclick = () => {
+      const canvas = el('shareCanvas');
+      const link = document.createElement('a');
+      link.download = 'diagnostic-digital-iainfermera.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    };
+    el('btnRestart').onclick = () => location.reload();
+
+    resultCard.classList.remove('hidden');
+    resultCard.scrollIntoView({behavior:'smooth', block:'start'});
+
+    updateResultDisplay();
+    animateRing(profile);
+    launchConfetti([profile.color, '#5EEAD4', '#F2A65A']);
+    await recordAndShowCommunity(profile.id);
+  }
+
+  async function recordAndShowCommunity(myProfileId){
+    let counts = {nativa:0, transicio:0, moderada:0, amplia:0};
+    try{
+      try{
+        const res = await window.storage.get('profile_counts', true);
+        if(res && res.value){ counts = JSON.parse(res.value); }
+      }catch(e){ /* no existeix encara */ }
+
+      counts[myProfileId] = (counts[myProfileId]||0) + 1;
+      await window.storage.set('profile_counts', JSON.stringify(counts), true);
+
+      lastKnownTotal = Object.values(counts).reduce((a,b)=>a+b,0);
+      updateChipTotal();
+    }catch(e){
+      console.error('Storage error', e);
+    }
+
+    lastKnownCounts = counts;
+    renderCommunityBars(counts, myProfileId);
+  }
+
+  document.getElementById('langToggle').addEventListener('click', e=>{
+    const btn = e.target.closest('.toggle-btn');
+    if(!btn || btn.dataset.val === lang) return;
+    lang = btn.dataset.val;
+    renderStaticText();
+    if(!screenQuiz.classList.contains('hidden')) renderQuestion();
+    if(resultShown) updateResultDisplay();
+  });
+
+  (async function initialPeek(){
+    renderStaticText();
+    try{
+      const res = await window.storage.get('profile_counts', true);
+      if(res && res.value){
+        const counts = JSON.parse(res.value);
+        lastKnownTotal = Object.values(counts).reduce((a,b)=>a+b,0);
+      } else {
+        lastKnownTotal = 0;
+      }
+    }catch(e){
+      lastKnownTotal = 0;
+    }
+    updateChipTotal();
+  })();
+
+})();
+</script>
+</body>
+</html>
